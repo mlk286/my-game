@@ -1,0 +1,333 @@
+<meta name='viewport' content='width=device-width, initial-scale=1'/><!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لعبة الحروف الذكية ⚡️</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            text-align: center; 
+            background: linear-gradient(270deg, #ff512f, #dd2476);
+            background-size: 400% 400%;
+            animation: animateBG 5s infinite alternate; 
+            color: white;
+        }
+
+        @keyframes animateBG {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 100% 50%; }
+        }
+
+        .container { 
+            width: 90%; max-width: 600px; 
+            margin: auto; background: rgba(0, 0, 0, 0.7); 
+            padding: 20px; border-radius: 10px; 
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.2); 
+        }
+
+        h1, h2, h3 { margin-bottom: 10px; }
+        #timer { font-size: 22px; font-weight: bold; color: yellow; }
+
+        .input-group { margin: 15px 0; text-align: right; }
+        label { font-size: 18px; font-weight: bold; display: block; margin-bottom: 5px; }
+        
+        input { 
+            width: 100%; padding: 15px; font-size: 20px; 
+            text-align: center; border: 3px solid #ddd; border-radius: 10px; 
+            transition: all 0.3s ease-in-out;
+        }
+
+        input:focus {
+            border-color: yellow;
+            box-shadow: 0 0 10px yellow;
+            outline: none;
+        }
+
+        .correct { background-color: lightgreen; }
+        .wrong { background-color: lightcoral; }
+        
+        button { 
+            padding: 12px; font-size: 18px; cursor: pointer; 
+            border: none; border-radius: 5px; 
+            background-color: #28a745; color: white;
+            margin: 5px;
+        }
+        
+        button:hover { background-color: #218838; }
+
+        .message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            font-size: 20px;
+            display: none;
+            animation: fadeInOut 3s;
+        }
+
+        @keyframes fadeInOut {
+            0% { opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        #newLetter {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 48px;
+            color: white;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 20px;
+            border-radius: 10px;
+            z-index: 1000;
+        }
+
+        #emailDisplay {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 24px;
+            color: white;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 20px;
+            border-radius: 10px;
+            z-index: 1000;
+        }
+
+        #roundInfo {
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>لعبة الحروف الذكية ⚡️</h1>
+        <h2>أعطني اسم يبدأ بحرف: <span id="letter"></span></h2>
+        <h3 id="timer">الوقت المتبقي: <span id="time">120</span> ثانية</h3>
+        <div id="roundInfo">الجولة: 1</div>
+
+        <div class="input-group"><label>🏳️ بلد:</label> <input type="text" id="country"></div>
+        <div class="input-group"><label>🐅 حيوان:</label> <input type="text" id="animal"></div>
+        <div class="input-group"><label>👦 اسم ولد:</label> <input type="text" id="boy"></div>
+        <div class="input-group"><label>👧 اسم بنت:</label> <input type="text" id="girl"></div>
+        <div class="input-group"><label>🔨 جماد:</label> <input type="text" id="object"></div>
+        <div class="input-group"><label>🏙️ مدينة:</label> <input type="text" id="city"></div>
+        <div class="input-group"><label>🍏 فاكهة:</label> <input type="text" id="fruit"></div>
+        <div class="input-group"><label>👨‍💼 وظيفة:</label> <input type="text" id="job"></div>
+        <div class="input-group"><label>🍲 أكلة:</label> <input type="text" id="food"></div>
+
+        <button onclick="checkAnswers()">✅ تحقق من الإجابات</button>
+        <button onclick="startNewRound()">🔄 جولة جديدة</button>
+        <button id="pauseButton" onclick="pauseTimer()">⏸️ إيقاف الزمن</button>
+        <button id="resumeButton" onclick="resumeTimer()" style="display: none;">▶️ استئناف الزمن</button>
+        <button onclick="copyEmail()">📩 إرسال اقتراح</button>
+        <h3 id="result"></h3>
+    </div>
+
+    <div class="message" id="messageBox"></div>
+    <div id="newLetter"></div>
+    <div id="emailDisplay"></div>
+
+    <script>
+        let timeLeft;
+        let timerInterval;
+        let letters = "أبتثجحخدذرزسشصضطظعغفقكلمنهوي";
+        let chosenLetter;
+        let lastScore = 0;
+        let round = 1;
+        let initialTime = 120; // 2 دقائق
+        let isPaused = false;
+
+        function startGame() {
+            document.getElementById("result").textContent = "";
+            document.querySelectorAll("input").forEach(input => {
+                input.value = "";
+                input.classList.remove("correct", "wrong");
+                input.disabled = false; // التأكد من تفعيل الحقول
+            });
+
+            chosenLetter = letters[Math.floor(Math.random() * letters.length)];
+            document.getElementById("letter").textContent = chosenLetter;
+
+            const newLetterDiv = document.getElementById("newLetter");
+            newLetterDiv.textContent = chosenLetter;
+            newLetterDiv.style.display = "block";
+            setTimeout(() => {
+                newLetterDiv.style.display = "none";
+            }, 2000);
+
+            timeLeft = initialTime;
+            document.getElementById("time").textContent = timeLeft;
+            document.getElementById("roundInfo").textContent = `الجولة: ${round}`;
+            clearInterval(timerInterval);
+            isPaused = false;
+            document.getElementById("pauseButton").style.display = "inline";
+            document.getElementById("resumeButton").style.display = "none";
+
+            timerInterval = setInterval(() => {
+                if (!isPaused) {
+                    timeLeft--;
+                    document.getElementById("time").textContent = timeLeft;
+                    if (timeLeft === 0) {
+                        clearInterval(timerInterval);
+                        showMessage("⏳ انتهى الوقت! حاول مرة أخرى.", 2000);
+                    }
+                }
+            }, 1000);
+        }
+
+        function startNewRound() {
+            startGame();
+        }
+
+        function pauseTimer() {
+            if (!isPaused) {
+                isPaused = true;
+                document.querySelectorAll("input").forEach(input => {
+                    input.disabled = true; // تعطيل الحقول
+                });
+                document.getElementById("pauseButton").style.display = "none";
+                document.getElementById("resumeButton").style.display = "inline";
+                showMessage("⏸️ الزمن متوقف الآن!", 2000);
+            }
+        }
+
+        function resumeTimer() {
+            if (isPaused) {
+                isPaused = false;
+                document.querySelectorAll("input").forEach(input => {
+                    input.disabled = false; // تفعيل الحقول
+                });
+                document.getElementById("pauseButton").style.display = "inline";
+                document.getElementById("resumeButton").style.display = "none";
+            }
+        }
+
+        // منع الكتابة أثناء الإيقاف
+        document.querySelectorAll("input").forEach(input => {
+            input.addEventListener("keydown", function(event) {
+                if (isPaused) {
+                    event.preventDefault();
+                    showMessage("لا يمكنك حبيبي الكتابة وأنت في وضع إيقاف الزمن هذا قش 🙈👻", 2000);
+                }
+            });
+        });
+
+        function startsWithLetter(word, letter) {
+            const firstChar = word.charAt(0);
+            if (firstChar === letter) {
+                return true;
+            }
+            if ((letter === "ا" && firstChar === "أ") || (letter === "أ" && firstChar === "ا")) {
+                return true;
+            }
+            return false;
+        }
+
+        async function isValidWord(word) {
+            if (word.length <= 1) {
+                return false;
+            }
+            try {
+                const response = await fetch(
+                    `https://ar.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(word)}&format=json&origin=*`
+                );
+                const data = await response.json();
+                const pages = data.query.pages;
+                for (let pageId in pages) {
+                    if (pages[pageId].missing === undefined) {
+                        return true;
+                    }
+                }
+                return false;
+            } catch (error) {
+                console.error("خطأ في التحقق من الكلمة:", error);
+                return false;
+            }
+        }
+
+        async function checkAnswers() {
+            if (isPaused) {
+                showMessage("لا يمكنك التحقق أثناء إيقاف الزمن!", 2000);
+                return;
+            }
+            clearInterval(timerInterval);
+            let score = 0;
+
+            let userInputs = {
+                country: document.getElementById("country").value.trim(),
+                animal: document.getElementById("animal").value.trim(),
+                boy: document.getElementById("boy").value.trim(),
+                girl: document.getElementById("girl").value.trim(),
+                object: document.getElementById("object").value.trim(),
+                city: document.getElementById("city").value.trim(),
+                fruit: document.getElementById("fruit").value.trim(),
+                job: document.getElementById("job").value.trim(),
+                food: document.getElementById("food").value.trim()
+            };
+
+            for (let category in userInputs) {
+                let userInput = userInputs[category];
+                if (startsWithLetter(userInput, chosenLetter)) {
+                    const isValid = await isValidWord(userInput);
+                    if (isValid) {
+                        document.getElementById(category).classList.add("correct");
+                        score++;
+                    } else {
+                        document.getElementById(category).classList.add("wrong");
+                    }
+                } else {
+                    document.getElementById(category).classList.add("wrong");
+                }
+            }
+
+            lastScore = score;
+            document.getElementById("result").textContent = `نتيجتك: ${score} من 9 🎯`;
+
+            showMessage(score >= 5 ? "🌟 رائع! لديك ذكاء فائق!" : "📖 حاول تحسين معرفتك بالقراءة!", 3000);
+
+            round++;
+            if (initialTime > 45) {
+                initialTime -= 5;
+            }
+        }
+
+        function showMessage(text, duration) {
+            let messageBox = document.getElementById("messageBox");
+            messageBox.textContent = text;
+            messageBox.style.display = "block";
+            setTimeout(() => messageBox.style.display = "none", duration);
+        }
+
+        function copyEmail() {
+            const email = "qmta80@gmail.com";
+            const emailDisplay = document.getElementById("emailDisplay");
+            emailDisplay.textContent = "انسخ البريد: " + email;
+            emailDisplay.style.display = "block";
+            setTimeout(() => {
+                emailDisplay.style.display = "none";
+            }, 5000);
+
+            navigator.clipboard.writeText(email).then(() => {
+                alert("تم نسخ البريد: " + email + "\n📬 ارسل اقتراحك الجميل الآن!");
+            }).catch(err => {
+                alert("حدث خطأ! انسخ البريد يدويًا: " + email);
+            });
+        }
+
+        startGame();
+    </script>
+</body>
+</html>
